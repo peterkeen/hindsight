@@ -5,7 +5,7 @@ require "hindsight/version"
 
 # Describe your gem and declare its dependencies:
 Gem::Specification.new do |s|
-  s.name        = "hindsight"
+  s.name        = "culturecode_hindsight"
   s.version     = Hindsight::VERSION
   s.authors     = ["Ryan Wallace", "Nicholas Jakobsen"]
   s.email       = ["contact@culturecode.ca"]
