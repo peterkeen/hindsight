@@ -13,7 +13,6 @@ module Hindsight
         end
       end
 
-      before_save :prepare_version
       after_create :init_versioned_record_id
     end
   end
@@ -23,31 +22,37 @@ module Hindsight
 
   module InstanceMethods
     def new_version(&block)
-      next_version = dup
-      next_version.send(:prepare_version)
-      block.call(next_version) if block_given?
-      return next_version
+      create_new_version(&block)
+    end
+
+    def create_or_update_with_versioning
+      next_version = create_new_version
+      self.id = next_version.id
+      reload
+      return true
+    end
+
+    def self.included(base)
+      base.alias_method_chain :create_or_update, :versioning
     end
 
     private
 
-    def prepare_version
-      new_record!
-      increment_version
+    def create_new_version(&block)
+      new_version = dup
+      new_version.version += 1
+      apply_has_many_associations(new_version)
+      apply_has_many_through_associations(new_version)
+      new_version.send(:create_or_update_without_versioning, &block)
+      return new_version
     end
 
-    def new_record!
-      self.id = nil
-      @new_record = true
-
-      # Ensure all attributes are saved
-      self.attributes.each do |attribute, value|
-        send("#{attribute}_will_change!")
-      end
+    def apply_has_many_associations(new_version)
+      # TODO
     end
 
-    def increment_version
-      self.version += 1
+    def apply_has_many_through_associations(new_version)
+      # TODO
     end
 
     def init_versioned_record_id

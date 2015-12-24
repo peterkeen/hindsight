@@ -1,6 +1,14 @@
 require 'spec_helper'
 
 describe Hindsight do
+  describe '#create!' do
+    subject { Document.create! }
+
+    it 'sets the version number' do
+      expect(subject.version).to eq(1)
+    end
+  end
+
   describe '#save!' do
     context 'a record' do
       subject { Document.create }
