@@ -122,4 +122,37 @@ describe Hindsight do
       expect { subject.update_attributes!(:body => 'changed') }.to change { subject.versions.count }.from(1).to(2)
     end
   end
+
+  describe '#new_version' do
+    subject { Document.create }
+
+    it 'returns a new version' do
+      expect(subject.new_version).to be_a(subject.class)
+      expect(subject.new_version).not_to eq(subject)
+    end
+
+    it 'does not affect the version of the receiver' do
+      expect { subject.new_version }.not_to change { subject.version }
+    end
+
+    it 'accepts a block and yields a new version' do
+      subject.new_version do |v|
+        expect(v.version).to eq(2)
+      end
+    end
+
+    it 'allows attribute changes to be made without affecting the original version' do
+      subject.update_attributes(:body => 'original text')
+      subject.new_version do |v|
+        expect { v.update_attributes(:body => 'new text') }.not_to change { subject.body }
+      end
+    end
+
+    it 'allows association= changes to be made without affecting the original version' do
+      subject.update_attribute(:project, Project.create)
+      subject.new_version do |v|
+        expect { v.update_attribute(:project, Project.create) }.not_to change { subject.project }
+      end
+    end
+  end
 end

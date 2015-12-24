@@ -22,6 +22,13 @@ module Hindsight
   end
 
   module InstanceMethods
+    def new_version(&block)
+      next_version = dup
+      next_version.send(:prepare_version)
+      block.call(next_version) if block_given?
+      return next_version
+    end
+
     private
 
     def prepare_version

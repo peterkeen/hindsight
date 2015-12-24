@@ -55,6 +55,7 @@ class Project < ActiveRecord::Base
 end
 
 class Document < ActiveRecord::Base
+  belongs_to :project
   has_many :authors, :through => :document_authors # non-versioned has_many :through
   has_many :comments # non-versioned has_many
   has_hindsight
