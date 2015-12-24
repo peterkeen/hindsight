@@ -41,43 +41,57 @@ describe Hindsight do
       end
     end
 
-    context 'a record with a has_many association' do
-      context 'that is versioned' do
-        subject { Project.create }
+    context 'a record with a versioned has_many association' do
+      # TODO
+    end
 
-        it 'persists association changes via others_ids=' do
-          new_companies = [Company.create]
-          attributes = {:company_ids => new_companies.collect(&:id) }
-          expect { subject.update_attributes!(attributes) }.to change { subject.companies.to_a }.to(new_companies)
-        end
+    context 'a record with a versioned has_many association' do
+      # FIXME: it 'persists changes to associations'
+      # FIXME: it 'does not modify the associations of the original record'
+    end
 
-        it 'does not modify the associations of the original record' do
-          original_id = subject.id
-          expect { subject.update_attributes!(:company_ids => [Company.create.id]) }.not_to change { Project.find(original_id).companies }
-        end
+    context 'on a record that has a versioned has_many :through association' do
+      subject { Project.create }
 
-        it 'does not change unmodified associations of the new version' do
-          original_id = subject.id
-          expect { subject.update_attributes!(:document_ids => [Document.create.id]) }.not_to change { Project.find(original_id).companies }
-        end
+      it 'copies the association to the new version' do
+        subject.companies << Company.create
+        expect { subject.update_attributes!(:name => 'changed') }.not_to change { subject.companies }
       end
 
-      context 'that is not versioned' do
-        # FIXME: it 'persists changes to associations'
-        # FIXME: it 'does not modify the associations of the original record'
+      it "persists the new version's association to the database" do
+        subject.companies << Company.create
+        expect { subject.update_attributes!(:name => 'changed') }.not_to change { Project.find(subject).companies }
+      end
+
+      it 'does not modify the association on the previous version' do
+        original_id = subject.id
+        subject.companies << Company.create
+        expect { subject.update_attributes!(:name => 'changed') }.not_to change { Project.find(original_id).companies }
+      end
+
+      it 'can modify the association via others_ids=' do
+        new_companies = [Company.create]
+        attributes = {:company_ids => new_companies.collect(&:id) }
+        expect { subject.update_attributes!(attributes) }.to change { subject.companies.to_a }.to(new_companies)
+      end
+
+      it 'persists modifications to the association via others_ids=' do
+        new_companies = [Company.create]
+        attributes = {:company_ids => new_companies.collect(&:id) }
+        expect { subject.update_attributes!(attributes) }.to change { Project.find(subject).companies }.to(new_companies)
+      end
+
+      it 'does not modify the association on the previous version' do
+        original_id = subject.id
+        new_companies = [Company.create]
+        attributes = {:company_ids => new_companies.collect(&:id) }
+        expect { subject.update_attributes!(attributes) }.not_to change { Project.find(original_id).companies }
       end
     end
 
-    context 'when the record has a has_many :through association' do
-      context 'that is versioned' do
-        it 'persists changes to associations'
-        it 'does not modify the associations of the original record'
-      end
-
-      context 'that is not versioned' do
-        it 'persists changes to associations'
-        it 'does not modify the associations of the original record'
-      end
+    context 'on a record that has an un-versioned has_many :through association' do
+      it 'persists changes to associations'
+      it 'does not modify the associations of the original record'
     end
   end
 
