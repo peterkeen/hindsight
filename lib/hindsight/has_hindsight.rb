@@ -41,18 +41,20 @@ module Hindsight
     def create_new_version(&block)
       new_version = dup
       new_version.version += 1
-      apply_has_many_associations(new_version)
-      apply_has_many_through_associations(new_version)
+      copy_associations_to(new_version)
       new_version.send(:create_or_update_without_versioning, &block)
       return new_version
     end
 
-    def apply_has_many_associations(new_version)
-      # TODO
-    end
-
-    def apply_has_many_through_associations(new_version)
-      # TODO
+    def copy_associations_to(new_version)
+      self.class.reflections.each do |association_name, reflection|
+        case reflection
+        when ActiveRecord::Reflection::ThroughReflection
+          new_version.send("#{association_name}=", send(association_name))
+        when ActiveRecord::Reflection::HasManyReflection
+          # TODO: Check if associated record is versioned, if so, create a new version with the updated foreign key
+        end
+      end
     end
 
     def init_versioned_record_id

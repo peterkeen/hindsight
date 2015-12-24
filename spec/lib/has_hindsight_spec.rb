@@ -67,8 +67,10 @@ describe Hindsight do
       end
 
       it "persists the new version's association to the database" do
-        subject.companies << Company.create
-        expect { subject.update_attributes!(:name => 'changed') }.not_to change { Project.find(subject).companies }
+        companies = [Company.create]
+        subject.companies = companies
+        subject.update_attributes!(:name => 'changed')
+        expect(subject.versions.last.companies).to eq(companies)
       end
 
       it 'does not modify the association on the previous version' do
@@ -86,7 +88,8 @@ describe Hindsight do
       it 'persists modifications to the association via others_ids=' do
         new_companies = [Company.create]
         attributes = {:company_ids => new_companies.collect(&:id) }
-        expect { subject.update_attributes!(attributes) }.to change { Project.find(subject).companies }.to(new_companies)
+        subject.update_attributes!(attributes)
+        expect(subject.versions.last.companies).to eq(new_companies)
       end
 
       it 'does not modify the association on the previous version' do

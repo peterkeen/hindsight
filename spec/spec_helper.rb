@@ -56,16 +56,17 @@ end
 
 class Document < ActiveRecord::Base
   belongs_to :project
+  has_many :document_authors
   has_many :authors, :through => :document_authors # non-versioned has_many :through
   has_many :comments # non-versioned has_many
   has_hindsight
 end
 
-class Authors < ActiveRecord::Base
+class Author < ActiveRecord::Base
   has_many :documents, :through => :document_authors
 end
 
-class Comments < ActiveRecord::Base
+class Comment < ActiveRecord::Base
   belongs_to :document
 end
 
@@ -74,9 +75,9 @@ class ProjectCompany < ActiveRecord::Base
   belongs_to :company
 end
 
-class DocumentAuthors < ActiveRecord::Base
+class DocumentAuthor < ActiveRecord::Base
   belongs_to :document
-  belongs_to :person
+  belongs_to :author
 end
 
 # Manually implement transactional examples because we're not using rspec_rails
