@@ -55,7 +55,7 @@ end
 class Project < ActiveRecord::Base
   has_many :documents # versioned has_many
   has_many :project_companies
-  has_many :companies, :through => :project_companies # versioned has_many :through
+  has_many :companies, Hindsight::AssociationConditions.latest_version, :through => :project_companies # versioned has_many :through
   has_hindsight
 end
 
