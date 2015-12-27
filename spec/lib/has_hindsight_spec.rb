@@ -51,28 +51,25 @@ describe Hindsight do
 
     context 'a record with a versioned has_many association' do
       subject { Project.create }
+      let(:document) { Document.create }
 
       it 'copies the association to the new version' do
-        document = Document.create
         subject.documents << document
         subject.update_attributes!(:name => 'changed')
         expect(subject.documents).to contain_exactly(document.versions.last)
       end
 
       it "persists the new version's association to the database" do
-        document = Document.create
         subject.documents << document
         subject.update_attributes!(:name => 'changed')
         expect(subject.versions.last.documents).to contain_exactly(document.versions.last)
       end
-    end
 
-    context 'a record with a versioned has_many association' do
-      # FIXME: it 'persists changes to associations'
-      # FIXME: it 'does not modify the associations of the original record'
-    end
-
-    context 'a record with a versioned has_one association' do
+      it 'does not modify associations of previous versions' do
+        subject.documents << document
+        subject.save
+        expect(subject.versions.previous.documents).to contain_exactly(document)
+      end
     end
 
     context 'a record with an unversioned has_one association' do
@@ -80,27 +77,28 @@ describe Hindsight do
 
     context 'on a record that has a versioned has_many :through association' do
       subject { Project.create }
+      let(:company) { Company.create }
 
       it 'copies the association to the new version' do
-        subject.companies << Company.create
-        expect { subject.update_attributes!(:name => 'changed') }.not_to change { subject.companies }
+        subject.companies << company
+        subject.save
+        expect(subject.companies).to contain_exactly(company)
       end
 
       it "persists the new version's association to the database" do
-        companies = [Company.create]
-        subject.companies = companies
-        subject.update_attributes!(:name => 'changed')
-        expect(subject.versions.last.companies).to eq(companies)
+        subject.companies << company
+        subject.save
+        expect(subject.versions.last.companies).to contain_exactly(company)
       end
 
-      it 'does not modify the association on the previous version' do
-        original_id = subject.id
-        subject.companies << Company.create
-        expect { subject.update_attributes!(:name => 'changed') }.not_to change { Project.find(original_id).companies }
+      it 'does not modify associations of previous versions' do
+        subject.companies << company
+        subject.save
+        expect(subject.versions.previous.companies).to contain_exactly(company)
       end
 
       it 'can modify the association via others_ids=' do
-        new_companies = [Company.create]
+        new_companies = [company]
         attributes = {:company_ids => new_companies.collect(&:id) }
         expect { subject.update_attributes!(attributes) }.to change { subject.companies.to_a }.to(new_companies)
       end
@@ -110,13 +108,6 @@ describe Hindsight do
         attributes = {:company_ids => new_companies.collect(&:id) }
         subject.update_attributes!(attributes)
         expect(subject.versions.last.companies).to eq(new_companies)
-      end
-
-      it 'does not modify the association on the previous version' do
-        original_id = subject.id
-        new_companies = [Company.create]
-        attributes = {:company_ids => new_companies.collect(&:id) }
-        expect { subject.update_attributes!(attributes) }.not_to change { Project.find(original_id).companies }
       end
     end
 
