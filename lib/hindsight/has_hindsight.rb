@@ -18,9 +18,16 @@ module Hindsight
   end
 
   module ClassMethods
+    def acts_like_hindsight?
+      true
+    end
   end
 
   module InstanceMethods
+    def acts_like_hindsight?
+      true
+    end
+
     def new_version(&block)
       create_new_version(&block)
     end
@@ -29,6 +36,7 @@ module Hindsight
       next_version = create_new_version
       self.id = next_version.id
       reload
+      clear_association_cache
       return true
     end
 
@@ -46,15 +54,19 @@ module Hindsight
       return new_version
     end
 
+    # Copy associations with a foreign_key to this record, onto the new version
     def copy_associations_to(new_version)
       self.class.reflections.each do |association_name, reflection|
+        next if association_name == 'versions' # Don't try to copy versions
         case reflection
-        when ActiveRecord::Reflection::ThroughReflection
+        when ActiveRecord::Reflection::HasManyReflection, ActiveRecord::Reflection::HasOneReflection
           new_version.send("#{association_name}=", send(association_name))
-        when ActiveRecord::Reflection::HasManyReflection
-          # TODO: Check if associated record is versioned, if so, create a new version with the updated foreign key
         end
       end
+    end
+
+    def has_hindsight?(other)
+      other.acts_like? :hindsight
     end
 
     def init_versioned_record_id

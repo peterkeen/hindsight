@@ -50,12 +50,32 @@ describe Hindsight do
     end
 
     context 'a record with a versioned has_many association' do
-      # TODO
+      subject { Project.create }
+
+      it 'copies the association to the new version' do
+        document = Document.create
+        subject.documents << document
+        subject.update_attributes!(:name => 'changed')
+        expect(subject.documents).to contain_exactly(document.versions.last)
+      end
+
+      it "persists the new version's association to the database" do
+        document = Document.create
+        subject.documents << document
+        subject.update_attributes!(:name => 'changed')
+        expect(subject.versions.last.documents).to contain_exactly(document.versions.last)
+      end
     end
 
     context 'a record with a versioned has_many association' do
       # FIXME: it 'persists changes to associations'
       # FIXME: it 'does not modify the associations of the original record'
+    end
+
+    context 'a record with a versioned has_one association' do
+    end
+
+    context 'a record with an unversioned has_one association' do
     end
 
     context 'on a record that has a versioned has_many :through association' do
@@ -101,8 +121,12 @@ describe Hindsight do
     end
 
     context 'on a record that has an un-versioned has_many :through association' do
-      it 'persists changes to associations'
-      it 'does not modify the associations of the original record'
+      it 'copies the association to the new version'
+      it "persists the new version's association to the database"
+      it 'does not modify the association on the previous version'
+      it 'can modify the association via others_ids='
+      it 'persists modifications to the association via others_ids='
+      it 'does not modify the association on the previous version'
     end
   end
 

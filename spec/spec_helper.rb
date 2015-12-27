@@ -31,6 +31,10 @@ ActiveRecord::Schema.define(:version => 0) do
   create_table :authors, :force => true do |t|
   end
 
+  create_table :comments, :force => true do |t|
+    t.references :document, :index => true
+  end
+
   create_table :document_authors, :force => true do |t|
     t.references :document, :index => true
     t.references :author, :index => true
@@ -43,8 +47,9 @@ ActiveRecord::Schema.define(:version => 0) do
 end
 
 class Company < ActiveRecord::Base
+  has_many :project_companies
   has_many :projects, :through => :project_companies # versioned has_many :through
-  # has_hindsight
+  has_hindsight
 end
 
 class Project < ActiveRecord::Base
