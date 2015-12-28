@@ -11,21 +11,15 @@ ActiveRecord::Base.establish_connection(:adapter => "postgresql", :database => "
 ActiveRecord::Schema.define(:version => 0) do
   create_table :companies, :force => true do |t|
     t.string :name
-    t.integer :version, :null => false, :default => 0
-    t.integer :versioned_record_id
   end
 
   create_table :projects, :force => true do |t|
     t.string :name
-    t.integer :version, :null => false, :default => 0
-    t.integer :versioned_record_id
   end
 
   create_table :documents, :force => true do |t|
     t.references :project, :index => true
     t.text :body
-    t.integer :version, :null => false, :default => 0
-    t.integer :versioned_record_id
   end
 
   create_table :authors, :force => true do |t|
@@ -44,6 +38,8 @@ ActiveRecord::Schema.define(:version => 0) do
     t.references :project, :index => true
     t.references :company, :index => true
   end
+
+  Hindsight::Schema.version_table(:companies, :projects, :documents)
 end
 
 class Company < ActiveRecord::Base
