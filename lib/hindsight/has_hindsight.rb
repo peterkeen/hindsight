@@ -1,3 +1,6 @@
+require 'hindsight/has_hindsight/debug'
+require 'hindsight/has_hindsight/associations'
+
 module Hindsight
   module ActMethod
     def has_hindsight(options = {})
@@ -29,40 +32,15 @@ module Hindsight
       true
     end
 
-    def latest_versions(version_table = table_name)
-      joins("LEFT JOIN #{version_table} versions
+    # Scope to return only the latest versions of records
+    # version_scope can be overridden to limit the scope of the lateset version calculation,
+    # e.g. if only the latest version that was attached to a particular record is desired,
+    # pass Document.where(:id => 3)
+    def latest_versions(version_scope = self)
+      joins("LEFT JOIN (#{version_scope.all.to_sql}) versions
                     ON #{table_name}.versioned_record_id = versions.versioned_record_id
                    AND #{table_name}.version < versions.version")
       .where('versions' => { :version => nil })
-    end
-
-    # Modify versioned associations so they return only the latest version of the associated record
-    def has_versioned_association(*association_names)
-      association_names = association_names.flatten.compact
-      association_names.each do |association_name|
-        # Duplicate reflection under as "#{association_name}_versions"
-        all_versions_association_name = :"#{association_name}_versions"
-        reflection = reflect_on_association(association_name)
-        send(reflection.macro, all_versions_association_name, reflection.options.reverse_merge(:class_name => reflection.class_name))
-
-        # Create an association that returns only the latest versions of associated records as appropriate
-        send(reflection.macro, association_name, latest_version_association_lambda(all_versions_association_name), reflection.options)
-      end
-    end
-
-    private
-
-    # Returns a condition for use in a versioned has_many association
-    # If the record is the latest version, return only the latest versions of associated records
-    # Else, return the latest version of each associated record that is associated with this version
-    def latest_version_association_lambda(all_versions_association_name)
-      lambda do |record|
-        if record.latest_version?
-          latest_versions
-        else
-          latest_versions "(#{record.send(all_versions_association_name).to_sql})"
-        end
-      end
     end
   end
 
@@ -117,18 +95,6 @@ module Hindsight
       return new_version
     end
 
-    # Copy associations with a foreign_key to this record, onto the new version
-    def copy_associations_to(new_version)
-      self.class.reflections.each do |association_name, reflection|
-        next if association_name.end_with? 'versions' # Don't try to copy versions
-        case reflection
-        when ActiveRecord::Reflection::HasManyReflection
-          Hindsight.debug "Copying #{association_name} from #{self.inspect} to #{new_version.inspect}" if send(association_name).present?
-          new_version.send("#{association_name}=", send(association_name))
-        end
-      end
-    end
-
     def has_hindsight?(other)
       other.acts_like? :hindsight
     end
@@ -136,17 +102,5 @@ module Hindsight
     def init_versioned_record_id
       update_column(:versioned_record_id, id) unless versioned_record_id.present?
     end
-  end
-
-  # DEBUG
-
-  def self.debug(message, &block)
-    @indent ||= 0
-    indent = '  ' * @indent
-    # puts indent + message
-    @indent += 1
-    block.call if block_given?
-  ensure
-    @indent -= 1
   end
 end
