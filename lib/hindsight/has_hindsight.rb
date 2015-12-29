@@ -45,6 +45,10 @@ module Hindsight
   end
 
   module InstanceMethods
+    def self.included(base)
+      base.alias_method_chain :create_or_update, :versioning
+    end
+
     def acts_like_hindsight?
       true
     end
@@ -66,10 +70,6 @@ module Hindsight
 
     def become_current
       become_version(versions.last)
-    end
-
-    def self.included(base)
-      base.alias_method_chain :create_or_update, :versioning
     end
 
     def latest_version?
