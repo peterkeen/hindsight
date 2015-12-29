@@ -10,14 +10,14 @@ module Hindsight
       class_attribute :hindsight_options
       self.hindsight_options = options
 
-      has_many :versions, lambda { extending(AssociationExtensions) }, :class_name => name, :primary_key => :versioned_record_id, :foreign_key => :versioned_record_id
+      has_many :versions, lambda { extending(VersionAssociationExtensions) }, :class_name => name, :primary_key => :versioned_record_id, :foreign_key => :versioned_record_id
       has_versioned_association hindsight_options[:versioned_associations]
 
       after_create :init_versioned_record_id
     end
   end
 
-  module AssociationExtensions
+  module VersionAssociationExtensions
     def previous
       where('version < ?', proxy_association.owner.version).reorder('version DESC').first
     end
