@@ -1,5 +1,6 @@
 require 'hindsight/has_hindsight/debug'
 require 'hindsight/has_hindsight/associations'
+require 'hindsight/has_hindsight/errors'
 
 module Hindsight
   module ActMethod
@@ -85,6 +86,7 @@ module Hindsight
     end
 
     def create_new_version(attributes = nil, &block)
+      new_version_check!
       new_version = dup
       new_version.version += 1
       copy_associations_to(new_version)
@@ -93,6 +95,10 @@ module Hindsight
         new_version.send(:create_or_update_without_versioning, &block)
       end
       return new_version
+    end
+
+    def new_version_check!
+      raise Hindsight::ReadOnlyVersion, "#{self.class.name} is not the latest version" unless latest_version? || new_record?
     end
 
     def has_hindsight?(other)

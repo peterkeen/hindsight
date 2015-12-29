@@ -87,6 +87,12 @@ describe Hindsight do
     it 'creates a new version record' do
       expect { subject.save }.to change { subject.class.count }.from(1).to(2)
     end
+
+    it 'raises an exception if the record is not a latest_version' do
+      subject.new_version
+      subject.body = 'changed'
+      expect { subject.save }.to raise_exception(Hindsight::ReadOnlyVersion)
+    end
   end
 
   describe '#update_attributes' do
