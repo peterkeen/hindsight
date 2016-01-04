@@ -25,7 +25,7 @@ describe Hindsight do
 
       it 'does not affect the association on the previous version' do
         project.update_attributes!(:documents => [Document.create])
-        expect { project.new_version(:documents => [Document.create]) }.not_to change { project.documents.to_a }
+        expect { project.new_version(:documents => [Document.create]) }.not_to change { project.documents(true).to_a }
       end
     end
 
@@ -44,7 +44,7 @@ describe Hindsight do
 
       it 'does not affect the association on the previous version' do
         document.update_attributes!(:comments => [Comment.create])
-        expect { document.new_version(:comments => [Comment.create]) }.not_to change { document.comments.to_a }
+        expect { document.new_version(:comments => [Comment.create]) }.not_to change { document.comments(true).to_a }
       end
     end
 
@@ -63,7 +63,7 @@ describe Hindsight do
 
       it 'does not affect the association on the previous version' do
         project.update_attributes!(:companies => [Company.create])
-        expect { project.new_version(:companies => [Company.create]) }.not_to change { project.companies.to_a }
+        expect { project.new_version(:companies => [Company.create]) }.not_to change { project.companies(true).to_a }
       end
     end
 
@@ -78,7 +78,7 @@ describe Hindsight do
 
       it 'does not affect the association on the previous version' do
         document.update_attributes!(:authors => [Author.create])
-        expect { document.new_version(:authors => [Author.create]) }.not_to change { document.authors.to_a }
+        expect { document.new_version(:authors => [Author.create]) }.not_to change { document.authors(true).to_a }
       end
     end
   end
@@ -88,7 +88,7 @@ describe Hindsight do
     let(:new_version) { document.new_version(:comments => [Comment.new] ) }
 
     it 'updates association to those of the latest version' do
-      expect { document.become_current }.to change { document.comments.to_a }.to(new_version.comments.to_a)
+      expect { document.become_current }.to change { document.comments.to_a }.to(new_version.comments(true).to_a)
     end
   end
 
