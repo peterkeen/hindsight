@@ -11,8 +11,9 @@ module Hindsight
       class_attribute :hindsight_options
       self.hindsight_options = options
 
+      has_versioned_association options[:versioned_associations]
+
       has_many :versions, lambda { extending(VersionAssociationExtensions) }, :class_name => name, :primary_key => :versioned_record_id, :foreign_key => :versioned_record_id
-      has_versioned_association hindsight_options[:versioned_associations]
 
       after_create :init_versioned_record_id
     end

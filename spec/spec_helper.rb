@@ -45,23 +45,25 @@ end
 
 class Company < ActiveRecord::Base
   has_many :project_companies
-  has_many :projects, :through => :project_companies # versioned has_many :through
-  has_hindsight
+  has_many :projects, :through => :project_companies
+
+  has_hindsight :versioned_associations => :projects
 end
 
 class Project < ActiveRecord::Base
-  has_many :documents # versioned has_many
+  has_many :documents
   has_many :project_companies
-  has_many :companies, :through => :project_companies # versioned has_many :through
+  has_many :companies, :through => :project_companies
 
-  has_hindsight :versioned_associations => :documents
+  has_hindsight :versioned_associations => [:documents, :companies]
 end
 
 class Document < ActiveRecord::Base
   belongs_to :project
   has_many :document_authors
-  has_many :authors, :through => :document_authors # non-versioned has_many :through
-  has_many :comments # non-versioned has_many
+  has_many :authors, :through => :document_authors
+  has_many :comments
+
   has_hindsight
 end
 

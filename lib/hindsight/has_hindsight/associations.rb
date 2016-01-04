@@ -2,12 +2,12 @@ module Hindsight
   module ClassMethods
     # Modify versioned associations so they return only the latest version of the associated record
     def has_versioned_association(*associations)
-      associations = associations.flatten.compact
+      associations = associations.flatten.compact.collect(&:to_sym)
       associations.each do |association|
         # Duplicate reflection under as "#{association}_versions"
         all_versions_association = :"#{association}_versions"
         reflection = reflect_on_association(association)
-        send(reflection.macro, all_versions_association, reflection.options.reverse_merge(:class_name => reflection.class_name))
+        send(reflection.macro, all_versions_association, reflection.options.reverse_merge(:class_name => association.to_s.classify, :source => association.to_s.singularize))
 
         # Create an association that returns only the latest versions of associated records as appropriate
         send(reflection.macro, association, versioned_association_condition(all_versions_association), reflection.options)
@@ -32,16 +32,18 @@ module Hindsight
   end
 
   module InstanceMethods
+    private
+
     # Copy associations with a foreign_key to this record, onto the new version
     def copy_associations_to(new_version)
-      self.class.reflections.each do |association, reflection|
-        next if association.end_with? 'versions' # Don't try to copy versions
-        case reflection
-        when ActiveRecord::Reflection::HasManyReflection
-          Hindsight.debug "Copying #{association} from #{self.inspect} to #{new_version.inspect}" if send(association).present?
-          new_version.send("#{association}=", send(association))
-        end
+      versioned_associations.each do |association|
+        Hindsight.debug "Copying #{association} from #{self.inspect} to #{new_version.inspect}" if send(association).present?
+        new_version.send("#{association}=", send(association))
       end
+    end
+
+    def versioned_associations
+      Array.wrap(hindsight_options[:versioned_associations])
     end
   end
 end
