@@ -10,7 +10,25 @@ describe Hindsight do
   describe '#new_version' do
     subject { Document.create }
 
-    context 'setting versioned has_many associations' do
+    context 'with a versioned has_many association' do
+      it 'copies the association the new version' do
+        project.update_attributes!(:documents => [document])
+        expect(project.new_version.documents).to contain_exactly(document.versions.last)
+      end
+
+      it "persists the new version's association to the database" do
+        project.update_attributes!(:documents => [document])
+        project.new_version
+        expect(project.versions.last.documents).to contain_exactly(document.versions.last)
+      end
+
+      it 'does not affect the association on the previous version' do
+        project.update_attributes!(:documents => [document])
+        expect { project.new_version }.not_to change { project.documents(true).to_a }
+      end
+    end
+
+    context 'setting a versioned has_many association' do
       it 'can assign a collection' do
         expect(project.new_version(:documents => [document]).documents).to contain_exactly(document)
       end
@@ -29,7 +47,20 @@ describe Hindsight do
       end
     end
 
-    context 'setting unversioned has_many associations' do
+    context 'with an unversioned has_many association' do
+      it 'copies the association the new version' do
+        document.update_attributes!(:comments => [comment])
+        expect(document.new_version.comments).to contain_exactly(comment)
+      end
+
+      it "persists the new version's association to the database" do
+        document.update_attributes!(:comments => [comment])
+        document.new_version
+        expect(document.versions.last.comments).to contain_exactly(comment)
+      end
+    end
+
+    context 'setting an unversioned has_many association' do
       it 'can assign a collection' do
         expect(document.new_version(:comments => [comment]).comments).to contain_exactly(comment)
       end
@@ -48,7 +79,7 @@ describe Hindsight do
       end
     end
 
-    context 'setting versioned has_many :through associations' do
+    context 'with a versioned has_many :through association' do
       it 'can assign a collection' do
         expect(project.new_version(:companies => [company]).companies).to contain_exactly(company)
       end
@@ -67,7 +98,7 @@ describe Hindsight do
       end
     end
 
-    context 'setting unversioned has_many :through associations' do
+    context 'with an unversioned has_many :through association' do
       it 'can assign a collection' do
         expect(document.new_version(:authors => [author]).authors).to contain_exactly(author)
       end
@@ -117,24 +148,6 @@ describe Hindsight do
   end
 
   describe 'a versioned has_many association' do
-    it 'is copied to the new version' do
-      project.update_attributes!(:documents => [document])
-      project.update_attributes!(:name => 'changed')
-      expect(project.documents).to contain_exactly(document.versions.last)
-    end
-
-    it "persists the new version's association to the database" do
-      project.update_attributes!(:documents => [document])
-      project.update_attributes!(:name => 'changed')
-      expect(project.versions.last.documents).to contain_exactly(document.versions.last)
-    end
-
-    it 'does not modify associations of previous versions' do
-      project.update_attributes!(:documents => [document])
-      project.new_version
-      expect(project.documents(true)).to contain_exactly(document)
-    end
-
     context 'on the latest version of a record' do
       # project 1:1    document [1:1]
       # project 1:2 <= document [1:2]
