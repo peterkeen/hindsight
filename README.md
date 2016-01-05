@@ -60,8 +60,28 @@ is yielded the new version, so no changes affect the current version.
 
 ### Versioning Associations
 Changes to associations are tracked whenever possible. As new versions of records are created, their associations are
-copied to the new version. The details of how this works depends on the type of association and whether it is versioned
-or not.
+copied to the new version.
+
+Consider the following examples where `Project.has_many :documents`.
+
+```ruby
+# A record is added to an association
+project_v1.documents #=> []
+project_v2 = project.new_version(:documents => [document_a])
+project_v1.documents #=> []
+project_v2.documents #=> [document_a]
+```
+
+```ruby
+# A record is moved from one record's association to another record's
+alpha_project.documents #=> [document_a]
+beta_project.update_attributes(:documents => [document_a])
+beta_project.documents #=> [document_a]
+alpha_project.versions[-2].documents #=> [document_a] # The previous version still has an associated document...
+alpha_project.versions.last.documents #=> [] # ...but the latest version no longer has a document as it has been moved.
+```
+
+The details of how this works depends on the type of association and whether it is versioned or not.
 
 #### belongs_to
 Versioned through the mere fact that the foreign key is part of the current record, so changes are automatically
