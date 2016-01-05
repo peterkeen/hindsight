@@ -67,14 +67,19 @@ or not.
 Versioned through the mere fact that the foreign key is part of the current record, so changes are automatically
 tracked from one version to the next.
 
-#### has_one and has_many
+#### has_many
 Since the foreign key lies with the associated record, these associations are versioned only if the associated record
 is versioned. Saving a new version of the current record will update these associations as necessary, also triggering
 the creation of new versions of the associated records as their foreign keys are updated to point at this new version.
 
-Un-versioned has_one and has_many associations will save as expected, however, older versions of the current record will
+Un-versioned has_many associations will save as expected, however, older versions of the current record will
 lose any trace of those associated records as they are updated to point at the current record's latest version.
 
-#### has_one :through and has_many :through
+#### has_many :through
+Changes to these associations are tracked, regardless of whether the associated model is versioned. This is made
+possible by the :through record, which is automatically created when assigning a record to the association. One end of
+the :through record points at the new version, and the other end point at the (un-)versioned associated record.
 
-TODO
+
+## TODO
+Add has_one and has_one :through support.

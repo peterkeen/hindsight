@@ -34,7 +34,6 @@ module Hindsight
   module InstanceMethods
     private
 
-    # Copy associations with a foreign_key to this record, onto the new version
     def copy_associations_to(new_version)
       self.class.reflections.each do |association, reflection|
         next if version_association?(association)
