@@ -37,7 +37,8 @@ module Hindsight
     # Copy associations with a foreign_key to this record, onto the new version
     def copy_associations_to(new_version)
       self.class.reflections.each do |association, reflection|
-        next if association.end_with? 'versions' # Don't try to copy versions
+        next if version_association?(association)
+        next if through_association?(association)
 
         case reflection
         when ActiveRecord::Reflection::HasManyReflection
@@ -48,6 +49,17 @@ module Hindsight
           new_version.send("#{association}=", send(association))
         end
       end
+    end
+
+    # Returns true if the association exists only to keep track of previous versions of records
+    def version_association?(association)
+      association.to_s.end_with? 'versions'
+    end
+
+    # Returns true if the association is the :through association for another association on the model
+    def through_association?(association)
+      through_associations = self.class.reflections.values.collect{|r| r.options.symbolize_keys[:through].try(:to_sym) }.compact.uniq
+      through_associations.include? association.to_sym
     end
   end
 end
