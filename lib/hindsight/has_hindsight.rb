@@ -65,11 +65,6 @@ module Hindsight
       create_new_version(attributes, &block)
     end
 
-    def create_or_update_with_versioning
-      become_version(create_new_version)
-      return true
-    end
-
     def become_current
       become_version(versions.last)
     end
@@ -80,6 +75,11 @@ module Hindsight
 
     private
 
+    def create_or_update_with_versioning
+      become_version(create_new_version)
+      return true
+    end
+
     def become_version(version)
       self.id = version.id
       init_internals
@@ -87,14 +87,20 @@ module Hindsight
     end
 
     def create_new_version(attributes = nil, &block)
+      new_version = build_new_version(attributes, &block)
+      new_version.send(:create_or_update_without_versioning)
+      return new_version
+    end
+
+    def build_new_version(attributes = nil, &block)
       new_version_check!
       new_version = dup
       new_version.version += 1
+
       copy_associations_to(new_version)
-      Hindsight.debug "Saving #{self.inspect}" do
-        new_version.assign_attributes(attributes) if attributes
-        new_version.send(:create_or_update_without_versioning, &block)
-      end
+      new_version.assign_attributes(attributes) if attributes
+      block.call(new_version) if block_given?
+
       return new_version
     end
 

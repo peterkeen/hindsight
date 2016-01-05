@@ -36,14 +36,18 @@ module Hindsight
 
     # Copy associations with a foreign_key to this record, onto the new version
     def copy_associations_to(new_version)
-      versioned_associations.each do |association|
-        Hindsight.debug "Copying #{association} from #{self.inspect} to #{new_version.inspect}" if send(association).present?
-        new_version.send("#{association}=", send(association))
-      end
-    end
+      self.class.reflections.each do |association, reflection|
+        next if association.end_with? 'versions' # Don't try to copy versions
 
-    def versioned_associations
-      Array.wrap(hindsight_options[:versioned_associations])
+        case reflection
+        when ActiveRecord::Reflection::HasManyReflection
+          records = send(association).to_a
+          records.collect! {|r| r.send(:build_new_version) } if reflection.klass.acts_like?(:hindsight)
+          new_version.send("#{association}=", records)
+        when ActiveRecord::Reflection::ThroughReflection
+          new_version.send("#{association}=", send(association))
+        end
+      end
     end
   end
 end

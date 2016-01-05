@@ -8,23 +8,26 @@ describe Hindsight do
   let(:author) { Author.create }
 
   describe '#new_version' do
-    subject { Document.create }
-
     context 'with a versioned has_many association' do
-      it 'copies the association the new version' do
-        project.update_attributes!(:documents => [document])
+      before { project.update_attributes!(:documents => [document]) }
+
+      it 'copies the association to the new version' do
         expect(project.new_version.documents).to contain_exactly(document.versions.last)
       end
 
       it "persists the new version's association to the database" do
-        project.update_attributes!(:documents => [document])
         project.new_version
         expect(project.versions.last.documents).to contain_exactly(document.versions.last)
       end
 
       it 'does not affect the association on the previous version' do
-        project.update_attributes!(:documents => [document])
-        expect { project.new_version }.not_to change { project.documents(true).to_a }
+        snapshot = project.documents.collect(&:snapshot)
+        project.new_version
+        expect(project.documents).to eq(snapshot)
+      end
+
+      it 'does not persist changes to the association on the previous version' do
+        expect { project.new_version }.not_to change { project.documents(true).collect(&:snapshot) }
       end
     end
 
@@ -41,6 +44,10 @@ describe Hindsight do
         expect { project.new_version(:documents => [document]) }.to change { project.versions.count }.by(1)
       end
 
+      it 'creates only a single new version of the associated record' do
+        expect { project.new_version(:documents => [document]) }.to change { document.versions.count }.by(1)
+      end
+
       it 'does not affect the association on the previous version' do
         project.update_attributes!(:documents => [Document.create])
         expect { project.new_version(:documents => [Document.create]) }.not_to change { project.documents(true).to_a }
@@ -48,7 +55,7 @@ describe Hindsight do
     end
 
     context 'with an unversioned has_many association' do
-      it 'copies the association the new version' do
+      it 'copies the association to the new version' do
         document.update_attributes!(:comments => [comment])
         expect(document.new_version.comments).to contain_exactly(comment)
       end
@@ -80,6 +87,20 @@ describe Hindsight do
     end
 
     context 'with a versioned has_many :through association' do
+      before { project.update_attributes(:companies => [company]) }
+
+      it 'does not affect the association on the previous version' do
+        snapshot = company.snapshot
+        project.new_version
+        expect(project.companies).to contain_exactly(snapshot)
+      end
+
+      it 'does not persist changes to the association on the previous version' do
+        expect { project.new_version }.not_to change { project.companies(true).collect(&:snapshot) }
+      end
+    end
+
+    context 'setting a versioned has_many :through association' do
       it 'can assign a collection' do
         expect(project.new_version(:companies => [company]).companies).to contain_exactly(company)
       end
@@ -98,7 +119,7 @@ describe Hindsight do
       end
     end
 
-    context 'with an unversioned has_many :through association' do
+    context 'setting an unversioned has_many :through association' do
       it 'can assign a collection' do
         expect(document.new_version(:authors => [author]).authors).to contain_exactly(author)
       end
@@ -115,7 +136,6 @@ describe Hindsight do
   end
 
   describe '#become_current' do
-    subject { document }
     let(:new_version) { document.new_version(:comments => [Comment.new] ) }
 
     it 'updates association to those of the latest version' do
@@ -149,18 +169,18 @@ describe Hindsight do
 
   describe 'a versioned has_many association' do
     context 'on the latest version of a record' do
-      # project 1:1    document [1:1]
-      # project 1:2 <= document [1:2]
       let(:project) { Project.create.new_version }
-      before { project.update_attributes!(:documents => [document]) }
 
-      # project 1:2 <= document [1:3]
+      before do
+        project.update_attributes!(:documents => [document])
+        document.become_current # Document is a has many, so assigning it to a project will update it's foreign key and create a new version, so we need to become_current
+      end
+
       it 'returns the latest versions of records' do
         new_version = document.new_version
         expect(project.documents(true)).to contain_exactly(new_version)
       end
 
-      #                document [1:3]
       it 'exludes associated versions that have been moved to a different record in their latest version' do
         document.update_attributes!(:project => nil)
         expect(project.documents(true)).not_to include(*document.versions)
@@ -168,18 +188,14 @@ describe Hindsight do
     end
 
     context 'on a previous version of a record' do
-      # project 1:1    document [1:1]
-      # project 1:2 <= document [1:2]
-      # project 1:3 <= document [1:3]
       before do
         project.update_attributes!(:documents => [document])
         project.new_version
         document.become_current
       end
 
-      #                document [1:3]
       it 'returns the latest versions of records when they were associated to that version' do
-        snapshot = document.versions.previous # document [1:2]
+        snapshot = document.versions.previous
         document.update_attributes!(:project => nil)
         expect(project.documents(true)).to contain_exactly(snapshot)
       end
@@ -188,12 +204,9 @@ describe Hindsight do
 
   describe 'a versioned has_many :through association' do
     context 'on the latest version of a record' do
-      # project 1:1                           company [1:1]
-      # project 1:2 <= project_company [1] <= company [1:2]
       let(:project) { Project.create.new_version }
       before { project.update_attributes!(:companies => [company]) }
 
-      # project 1:2 <= project_company [2] <= company [1:3]
       it 'returns the latest versions of records' do
         new_version = company.new_version
         expect(project.companies(true)).to contain_exactly(new_version)
