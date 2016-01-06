@@ -8,10 +8,9 @@ module Hindsight
       extend Hindsight::ClassMethods
       include Hindsight::InstanceMethods
 
-      class_attribute :hindsight_options
-      self.hindsight_options = options
-
-      has_versioned_association options[:versioned_associations]
+      class_attribute :versioned_associations
+      self.versioned_associations = []
+      options[:versioned_associations] ? has_versioned_association(options[:versioned_associations]) : detect_versioned_associations
 
       has_many :versions, lambda { extending(VersionAssociationExtensions) }, :class_name => name, :primary_key => :versioned_record_id, :foreign_key => :versioned_record_id
 

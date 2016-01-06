@@ -4,6 +4,8 @@ module Hindsight
     def has_versioned_association(*associations)
       associations = associations.flatten.compact.collect(&:to_sym)
       associations.each do |association|
+        versioned_associations << association.to_sym
+
         # Duplicate reflection under as "#{association}_versions"
         all_versions_association = :"#{association}_versions"
         reflection = reflect_on_association(association)
@@ -15,6 +17,22 @@ module Hindsight
     end
 
     private
+
+    def detect_versioned_associations
+      reflections.each do |association, reflection|
+        next if versioned_associations.include?(association.to_sym)
+
+        case reflection
+        when ActiveRecord::Reflection::HasManyReflection, ActiveRecord::Reflection::ThroughReflection
+          has_versioned_association(association) if versioned_association?(association)
+        end
+      end
+    end
+
+    # Returns true if the associated model is versioned
+    def versioned_association?(association)
+      reflect_on_association(association).klass.acts_like?(:hindsight)
+    end
 
     # Returns a condition for use in a versioned has_many association
     # If the record is the latest version, return only the latest versions of associated records

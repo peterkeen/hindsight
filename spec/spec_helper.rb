@@ -64,7 +64,7 @@ class Document < ActiveRecord::Base
   has_many :authors, :through => :document_authors
   has_many :comments
 
-  has_hindsight
+  has_hindsight :versioned_associations => []
 end
 
 class Author < ActiveRecord::Base
