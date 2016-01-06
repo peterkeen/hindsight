@@ -104,5 +104,6 @@ possible by the :through record, which is automatically created when assigning a
 the :through record points at the new version, and the other end point at the (un-)versioned associated record.
 
 ## TODO
-Add has_one and has_one :through support.
-Add support for version-aware associations that already have a condition
+- Add support for has_one and has_one :through
+- Add support for version-aware associations that already have a condition
+- Add support for soft-delete
