@@ -81,7 +81,10 @@ alpha_project.versions[-2].documents #=> [document_a] # The previous version sti
 alpha_project.versions.last.documents #=> [] # ...but the latest version no longer has a document as it has been moved.
 ```
 
-The details of how this works depends on the type of association and whether it is versioned or not.
+**NOTE:** To make associations "version-aware", the original association is replaced with a new one that adds a scope on
+the end. The additional scope limits the records returned by the association to just those that are the latest version.
+The original association is available as "association_name_versions", e.g. "documents_versions", and will include all
+versions of all documents attached to this record.
 
 #### belongs_to
 Versioned through the mere fact that the foreign key is part of the current record, so changes are automatically
@@ -100,6 +103,6 @@ Changes to these associations are tracked, regardless of whether the associated 
 possible by the :through record, which is automatically created when assigning a record to the association. One end of
 the :through record points at the new version, and the other end point at the (un-)versioned associated record.
 
-
 ## TODO
 Add has_one and has_one :through support.
+Add support for version-aware associations that already have a condition
