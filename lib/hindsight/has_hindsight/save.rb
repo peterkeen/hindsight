@@ -3,12 +3,20 @@ module Hindsight
     module ClassMethods end
 
     module InstanceMethods
-      def self.included(base)
-        base.alias_method_chain :create_or_update, :versioning
+      def new_version(attributes = nil, save_options = {}, &block)
+        new_version_using(:save, attributes, save_options, &block)
       end
 
-      def new_version(attributes = nil, &block)
-        create_new_version(attributes, &block)
+      def new_version!(attributes = nil, save_options = {}, &block)
+        new_version_using(:save!, attributes, save_options, &block)
+      end
+
+      def save(options = {})
+        options.delete(:new_version) == false ? super(options) : save_using(:new_version, options)
+      end
+
+      def save!(options = {})
+        options.delete(:new_version) == false ? super(options) : save_using(:new_version!, options)
       end
 
       def become_current
@@ -17,21 +25,21 @@ module Hindsight
 
       private
 
-      def create_or_update_with_versioning
-        become_version(create_new_version)
-        return true
+      def save_using(new_version_method, options)
+        record = send(new_version_method, nil, options)
+        record ? become_version(record) : false
+      end
+
+      def new_version_using(save_method, attributes, save_options, &block)
+        new_version = build_new_version(attributes, &block)
+        success = new_version.send(save_method, save_options.merge(:new_version => false))
+        return success ? new_version : false
       end
 
       def become_version(version)
         self.id = version.id
         init_internals
         reload
-      end
-
-      def create_new_version(attributes = nil, &block)
-        new_version = build_new_version(attributes, &block)
-        new_version.send(:create_or_update_without_versioning)
-        return new_version
       end
 
       def build_new_version(attributes = nil, &block)

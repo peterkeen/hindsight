@@ -35,6 +35,32 @@ describe Hindsight do
       new_version = subject.new_version
       expect(new_version.versions.first).to eq(subject)
     end
+
+    it 'returns false if the record is invalid' do
+      subject.class.any_instance.stub(:valid? => false)
+      expect(subject.new_version).to be_falsey
+    end
+
+    it 'does not create a new version if the record is invalid' do
+      subject.class.any_instance.stub(:valid? => false)
+      expect { subject.new_version }.not_to change { subject.versions.count }
+    end
+
+    it 'runs save callbacks on the new version' do
+      subject.class.send :attr_accessor, :test_point
+      subject.class.after_save lambda { |record| record.test_point = 'ran callbacks' }
+      new_version = subject.new_version
+
+      expect(new_version.test_point).to eq('ran callbacks')
+    end
+
+    it 'does not run callbacks on the current version' do
+      subject.class.send :attr_accessor, :test_point
+      subject.class.after_save lambda { |record| record.test_point = 'ran callbacks' }
+      new_version = subject.new_version
+
+      expect(subject.test_point).not_to eq('ran callbacks')
+    end
   end
 
   describe '#create!' do
@@ -58,6 +84,18 @@ describe Hindsight do
       subject.body = 'changed'
       expect { subject.save }.to raise_exception(Hindsight::ReadOnlyVersion)
     end
+
+    it 'returns false if the record is invalid' do
+      subject.class.any_instance.stub(:valid? => false)
+      expect(subject.save).to be_falsey
+    end
+
+    it 'does not create a new version if the record is invalid' do
+      subject.class.any_instance.stub(:valid? => false)
+      expect { subject.save }.not_to change { subject.versions.count }
+    end
+
+    it 'runs save callbacks'
   end
 
   describe '#update_attributes' do
