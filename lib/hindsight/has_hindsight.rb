@@ -1,5 +1,6 @@
 require 'hindsight/has_hindsight/base'
 require 'hindsight/has_hindsight/save'
+require 'hindsight/has_hindsight/destroy'
 require 'hindsight/has_hindsight/associations'
 require 'hindsight/has_hindsight/errors'
 require 'hindsight/has_hindsight/debug'
@@ -9,10 +10,12 @@ module Hindsight
     def has_hindsight(options = {})
       extend Base::ClassMethods
       extend Save::ClassMethods
+      extend Destroy::ClassMethods
       extend Associations::ClassMethods
 
       include Base::InstanceMethods
       include Save::InstanceMethods
+      include Destroy::InstanceMethods
       include Associations::InstanceMethods
 
       if options[:versioned_associations]

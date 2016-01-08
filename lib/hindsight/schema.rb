@@ -5,6 +5,7 @@ module Hindsight
         ActiveRecord::Schema.define do
           add_column table_name, :versioned_record_id, :integer
           add_column table_name, :version, :integer, :null => false, :default => 0
+          add_column table_name, :version_type, :string, :null => false, :default => ''
           add_index table_name, [:versioned_record_id, :version], :unique => true
         end
       end
