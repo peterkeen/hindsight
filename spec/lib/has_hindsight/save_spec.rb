@@ -49,15 +49,14 @@ describe Hindsight do
     it 'runs save callbacks on the new version' do
       subject.class.send :attr_accessor, :test_point
       subject.class.after_save lambda { |record| record.test_point = 'ran callbacks' }
-      new_version = subject.new_version
 
-      expect(new_version.test_point).to eq('ran callbacks')
+      expect(subject.new_version.test_point).to eq('ran callbacks')
     end
 
     it 'does not run callbacks on the current version' do
       subject.class.send :attr_accessor, :test_point
       subject.class.after_save lambda { |record| record.test_point = 'ran callbacks' }
-      new_version = subject.new_version
+      subject.new_version
 
       expect(subject.test_point).not_to eq('ran callbacks')
     end
