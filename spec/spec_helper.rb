@@ -6,7 +6,7 @@ require 'hindsight'
 # Load support files
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }
 
-ActiveRecord::Base.establish_connection(:adapter => "postgresql", :database => "hindsight_test")
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ':memory:')
 
 ActiveRecord::Schema.define(:version => 0) do
   create_table :companies, :force => true do |t|
