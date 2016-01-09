@@ -75,16 +75,36 @@ describe 'Hindsight::Destroy' do
       expect { subject.destroy }.to raise_exception(ActiveRecord::ReadOnlyRecord)
     end
 
-    it 'triggers before_destroy callbacks'
-    it 'triggers after_destroy callbacks'
+    it 'triggers before_destroy callbacks' do
+      stub_class(Document) do
+        attr_accessor :test_point
+        before_destroy lambda { |record| record.test_point = 'ran before_destroy' }
+      end
+
+      expect(subject.destroy.test_point).to eq('ran before_destroy')
+    end
+
+    it 'triggers after_destroy callbacks' do
+      stub_class(Document) do
+        attr_accessor :test_point
+        after_destroy lambda { |record| record.test_point = 'ran after_destroy' }
+      end
+
+      expect(subject.destroy.test_point).to eq('ran after_destroy')
+    end
   end
 
-  describe "#destroyed?" do
+  describe "#soft_destroyed?" do
     let(:subject) { Project.create }
 
-    it 'returns true if the record is a destroyed record' do
+    it 'returns true if the record has been soft deleted' do
       subject.destroy
-      expect(subject).to be_destroyed
+      expect(subject).to be_soft_destroyed
+    end
+
+    it 'returns true if a later version of the record has been soft deleted' do
+      subject.new_version.destroy
+      expect(subject).to be_soft_destroyed
     end
   end
 end

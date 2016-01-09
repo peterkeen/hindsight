@@ -16,11 +16,11 @@ module Hindsight
       end
 
       def destroy_row_with_versioning
-        update_attributes(:version_type => 'destroy')
+        update_attributes(:version_type => 'destroy') and return 1 unless soft_destroyed?
       end
 
-      def destroyed?
-        version_type == 'destroy'
+      def soft_destroyed?
+        versions.destroyed.exists?
       end
     end
   end
