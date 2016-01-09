@@ -85,14 +85,16 @@ class DocumentAuthor < ActiveRecord::Base
   belongs_to :author
 end
 
-# Manually implement transactional examples because we're not using rspec_rails
 RSpec.configure do |config|
+  # Manually implement transactional examples because we're not using rspec_rails
   config.around do |example|
     ActiveRecord::Base.transaction do
       example.run
       raise ActiveRecord::Rollback
     end
   end
+
+  config.include StubClass
 end
 
 # Make it easy to say expect(object).to not_have_any( be_sunday )

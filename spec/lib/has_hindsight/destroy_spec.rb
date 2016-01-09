@@ -31,9 +31,10 @@ describe 'Hindsight::Destroy' do
   end
 
   describe "#destroy" do
-    let(:subject) { Document.create }
+    let(:document) { Document.create }
     let(:project) { Project.create }
-    let(:author) { Author.create }
+    let(:comment) { Comment.create }
+    let(:subject) { document }
 
     it 'creates a new version' do
       expect { subject.destroy }.to change { subject.versions.count }.by(1)
@@ -56,13 +57,17 @@ describe 'Hindsight::Destroy' do
     end
 
     it 'cascades destroy to dependent versioned associations' do
-      subject.update_attributes(:project => project)
-      expect { subject.destroy }.to change { project.versions.destroyed }.by(1)
+      stub_class(Project) { has_many :documents, :dependent => :destroy }
+      project.update_attributes(:documents => [document])
+      document.become_current
+
+      expect { project.destroy }.to change { document.versions.destroyed.count }.by(1)
     end
 
     it 'does not cascade destroy to dependent un-versioned associations' do
-      subject.update_attributes(:authors => [author])
-      expect { subject.destroy }.not_to change { Document.count }
+      stub_class(Document) { has_many :comments, :dependent => :destroy }
+      subject.update_attributes(:comments => [comment])
+      expect { document.destroy }.not_to change { Comment.count }
     end
 
     it 'raises an exception when destroying a readonly record (standard ActiveRecord behaviour)' do
