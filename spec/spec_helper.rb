@@ -47,7 +47,7 @@ class Company < ActiveRecord::Base
   has_many :project_companies
   has_many :projects, :through => :project_companies
 
-  has_hindsight :versioned_associations => :projects
+  has_hindsight :associations => { :versioned => :projects }
 end
 
 class Project < ActiveRecord::Base
@@ -55,7 +55,7 @@ class Project < ActiveRecord::Base
   has_many :project_companies
   has_many :companies, :through => :project_companies
 
-  has_hindsight :versioned_associations => [:documents, :companies]
+  has_hindsight :associations => { :versioned => [:documents, :companies] }
 end
 
 class Document < ActiveRecord::Base
@@ -64,7 +64,7 @@ class Document < ActiveRecord::Base
   has_many :authors, :through => :document_authors
   has_many :comments
 
-  has_hindsight :versioned_associations => []
+  has_hindsight :associations => { :versioned => [] }
 end
 
 class Author < ActiveRecord::Base

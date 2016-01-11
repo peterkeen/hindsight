@@ -18,11 +18,10 @@ module Hindsight
       include Destroy::InstanceMethods
       include Associations::InstanceMethods
 
-      if options[:versioned_associations]
-        has_versioned_association(options[:versioned_associations])
-      else
-        detect_versioned_associations
-      end
+      options.reverse_merge! :associations => {}
+
+      ignore_association(options[:associations][:ignore])
+      options[:associations].key?(:versioned) ? has_versioned_association(options[:associations][:versioned]) : detect_versioned_associations
 
       has_many :versions, lambda { extending(VersionAssociationExtensions) }, :class_name => name, :primary_key => :versioned_record_id, :foreign_key => :versioned_record_id
 

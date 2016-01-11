@@ -29,6 +29,12 @@ describe Hindsight do
       it 'does not persist changes to the association on the previous version' do
         expect { project.new_version }.not_to change { project.documents(true).collect(&:snapshot) }
       end
+
+      it 'does not copy ignored associations to the new version' do
+        stub_class(Company) { has_hindsight :associations => { :ignore => :projects } }
+        company.projects.create
+        expect(company.new_version.projects).to be_empty
+      end
     end
 
     context 'setting a versioned has_many association' do

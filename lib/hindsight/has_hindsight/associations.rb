@@ -11,8 +11,9 @@ module Hindsight
 
     module ClassMethods
       def self.extended(base)
-        base.class_attribute :versioned_associations
-        base.versioned_associations = []
+        base.class_attribute :versioned_associations, :ignored_associations
+        base.versioned_associations ||= []
+        base.ignored_associations ||= []
       end
 
       # Modify versioned associations so they return only the latest version of the associated record
@@ -35,9 +36,16 @@ module Hindsight
 
       def can_populate_new_version_association?(association)
         versionable_reflection?(reflect_on_association(association.to_sym)) &&
-        # !ignored_association?(association) &&
+        !ignored_association?(association) &&
         !version_association?(association) &&
         !through_association?(association)
+      end
+
+      # Identify an association that should not be copied when making new_versions
+      # e.g. it is a subset of another association, like :red_cars is to :all_cars
+      def ignore_association(*associations)
+        ignored_associations.concat associations.flatten.compact.collect(&:to_sym)
+        ignored_associations.uniq!
       end
 
       def detect_versioned_associations
@@ -53,6 +61,11 @@ module Hindsight
       def versionable_association?(association)
         reflection = reflect_on_association(association)
         versionable_reflection?(reflection) && reflection.klass.acts_like?(:hindsight)
+      end
+
+      # Returns true if the association is ignored and should not be copied to the new version
+      def ignored_association?(association)
+        ignored_associations.include? association.to_sym
       end
 
       # Returns true if the association exists only to keep track of previous versions of records
