@@ -62,6 +62,7 @@ module Hindsight
         self.class.reflections.each do |association, reflection|
           next if version_association?(association)
           next if through_association?(association)
+          next if new_version.association(association.to_sym).loaded?
 
           case reflection
           when ActiveRecord::Reflection::HasManyReflection

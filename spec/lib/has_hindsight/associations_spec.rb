@@ -85,10 +85,22 @@ describe Hindsight do
         expect { document.new_version(:comments => [Comment.create]) }.not_to change { document.comments(true).to_a }
       end
 
-      it 'does not affect the association on the previous version if it :dependent => :destroy' do
+      it 'does not affect the association on the previous version if it is :dependent => :destroy' do
         stub_class(Document) { has_many :comments, :dependent => :destroy }
         document.update_attributes!(:comments => [Comment.create])
         expect { document.new_version(:comments => [Comment.create]) }.not_to change { document.comments(true).to_a }
+      end
+
+      it 'does not affect the association on the previous version if it is :dependent => :destroy and is cleared' do
+        stub_class(Document) { has_many :comments, :dependent => :destroy }
+        document.update_attributes!(:comments => [Comment.create])
+        expect { document.new_version(:comments => []) }.not_to change { document.comments(true).to_a }
+      end
+
+      it 'does not affect the association on the previous version if it is :dependent => :destroy and is set by id' do
+        stub_class(Document) { has_many :comments, :dependent => :destroy }
+        document.update_attributes!(:comment_ids => [Comment.create.id])
+        expect { document.new_version(:comment_ids => [Comment.create.id]) }.not_to change { document.comments(true).to_a }
       end
     end
 

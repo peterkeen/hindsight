@@ -47,8 +47,8 @@ module Hindsight
         new_version = dup
         new_version.version += 1
 
-        copy_associations_to(new_version)
         new_version.assign_attributes(attributes) if attributes
+        copy_associations_to(new_version)
         block.call(new_version) if block_given?
 
         return new_version
