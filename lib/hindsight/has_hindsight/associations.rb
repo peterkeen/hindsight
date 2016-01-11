@@ -1,5 +1,14 @@
 module Hindsight
   module Associations
+    VERSIONING_CAPABILITIES = {
+      ActiveRecord::Reflection::HasManyReflection => {:versionable => true, :new_version_on_copy => true },
+      ActiveRecord::Reflection::ThroughReflection => {:versionable => true, :unversioned_history => true }
+    }.freeze
+
+    def self.is?(reflection, capability)
+      VERSIONING_CAPABILITIES.fetch(reflection.class, {}).fetch(capability, false)
+    end
+
     module ClassMethods
       def self.extended(base)
         base.class_attribute :versioned_associations
@@ -24,20 +33,41 @@ module Hindsight
 
       private
 
+      def can_populate_new_version_association?(association)
+        versionable_reflection?(reflect_on_association(association.to_sym)) &&
+        # !ignored_association?(association) &&
+        !version_association?(association) &&
+        !through_association?(association)
+      end
+
       def detect_versioned_associations
         reflections.each do |association, reflection|
           next if versioned_associations.include?(association.to_sym)
+          next if !versionable_association?(association)
 
-          case reflection
-          when ActiveRecord::Reflection::HasManyReflection, ActiveRecord::Reflection::ThroughReflection
-            has_versioned_association(association) if versioned_association?(association)
-          end
+          has_versioned_association(association)
         end
       end
 
       # Returns true if the associated model is versioned
-      def versioned_association?(association)
-        reflect_on_association(association).klass.acts_like?(:hindsight)
+      def versionable_association?(association)
+        reflection = reflect_on_association(association)
+        versionable_reflection?(reflection) && reflection.klass.acts_like?(:hindsight)
+      end
+
+      # Returns true if the association exists only to keep track of previous versions of records
+      def version_association?(association)
+        association.to_s.end_with? 'versions'
+      end
+
+      # Returns true if the association is the :through association for another association on the model
+      def through_association?(association)
+        through_associations = reflections.values.collect{|r| r.options.symbolize_keys[:through].try(:to_sym) }.compact.uniq
+        through_associations.include? association.to_sym
+      end
+
+      def versionable_reflection?(reflection)
+        Associations.is?(reflection, :versionable)
       end
 
       # Returns a condition for use in a versioned has_many association
@@ -60,30 +90,15 @@ module Hindsight
 
       def copy_associations_to(new_version)
         self.class.reflections.each do |association, reflection|
-          next if version_association?(association)
-          next if through_association?(association)
+          next if !self.class.send(:can_populate_new_version_association?, association)
           next if new_version.association(association.to_sym).loaded?
 
-          case reflection
-          when ActiveRecord::Reflection::HasManyReflection
-            records = send(association).to_a
-            records.collect! {|r| r.send(:build_new_version) } if reflection.klass.acts_like?(:hindsight)
-            new_version.send("#{association}=", records)
-          when ActiveRecord::Reflection::ThroughReflection
-            new_version.send("#{association}=", send(association))
+          records = send(association).to_a
+          if reflection.klass.acts_like?(:hindsight) && Associations.is?(reflection, :new_version_on_copy)
+            records.collect! {|r| r.send(:build_new_version) }
           end
+          new_version.send("#{association}=", records)
         end
-      end
-
-      # Returns true if the association exists only to keep track of previous versions of records
-      def version_association?(association)
-        association.to_s.end_with? 'versions'
-      end
-
-      # Returns true if the association is the :through association for another association on the model
-      def through_association?(association)
-        through_associations = self.class.reflections.values.collect{|r| r.options.symbolize_keys[:through].try(:to_sym) }.compact.uniq
-        through_associations.include? association.to_sym
       end
     end
   end
