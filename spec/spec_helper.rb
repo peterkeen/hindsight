@@ -40,7 +40,7 @@ ActiveRecord::Schema.define(:version => 0) do
     t.references :company, :index => true
   end
 
-  Hindsight::Schema.version_table(:companies, :projects, :documents)
+  Hindsight::Schema.version_table!(:companies, :projects, :documents)
 end
 
 class Company < ActiveRecord::Base
