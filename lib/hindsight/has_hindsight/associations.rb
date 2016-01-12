@@ -1,12 +1,14 @@
 module Hindsight
   module Associations
-    VERSIONING_CAPABILITIES = {
-      ActiveRecord::Reflection::HasManyReflection => {:versionable => true, :new_version_on_copy => true },
-      ActiveRecord::Reflection::ThroughReflection => {:versionable => true, :unversioned_history => true }
-    }.freeze
+    module Capabilities
+      VERSIONING_CAPABILITIES = {
+        ActiveRecord::Reflection::HasManyReflection => [:versionable, :new_version_on_copy],
+        ActiveRecord::Reflection::ThroughReflection => [:versionable, :unversioned_history]
+      }
 
-    def self.is?(reflection, capability)
-      VERSIONING_CAPABILITIES.fetch(reflection.class, {}).fetch(capability, false)
+      def self.for(reflection)
+        VERSIONING_CAPABILITIES.fetch(reflection.class, [])
+      end
     end
 
     module ClassMethods
@@ -80,7 +82,7 @@ module Hindsight
       end
 
       def versionable_reflection?(reflection)
-        Associations.is?(reflection, :versionable)
+        Capabilities.for(reflection).include?(:versionable)
       end
 
       # Returns a condition for use in a versioned has_many association
@@ -107,7 +109,7 @@ module Hindsight
           next if new_version.association(association.to_sym).loaded?
 
           records = send(association).to_a
-          if reflection.klass.acts_like?(:hindsight) && Associations.is?(reflection, :new_version_on_copy)
+          if reflection.klass.acts_like?(:hindsight) && Capabilities.for(reflection).include?(:new_version_on_copy)
             records.collect! {|r| r.send(:build_new_version) }
           end
           new_version.send("#{association}=", records)
