@@ -13,15 +13,17 @@ module Hindsight
 
     module ClassMethods
       def self.extended(base)
-        base.class_attribute :versioned_associations, :ignored_associations
-        base.versioned_associations ||= []
-        base.ignored_associations ||= []
+        base.class_attribute :versioned_associations, :ignored_associations, :through_associations
+        base.versioned_associations = []
+        base.ignored_associations = []
+        base.through_associations = []
       end
 
       # Modify versioned associations so they return only the latest version of the associated record
       def has_versioned_association(*associations)
         associations = associations.flatten.compact.collect(&:to_sym)
         associations.each do |association|
+          next if versioned_association?(association)
           versioned_associations << association.to_sym
 
           # Duplicate reflection under as "#{association}_versions"
@@ -34,14 +36,9 @@ module Hindsight
         end
       end
 
-      private
-
-      def can_populate_new_version_association?(association)
-        versionable_reflection?(reflect_on_association(association.to_sym)) &&
-        !ignored_association?(association) &&
-        !version_association?(association) &&
-        !through_association?(association)
       end
+
+      private
 
       # Identify an association that should not be copied when making new_versions
       # e.g. it is a subset of another association, like :red_cars is to :all_cars
@@ -52,17 +49,31 @@ module Hindsight
 
       def detect_versioned_associations
         reflections.each do |association, reflection|
-          next if versioned_associations.include?(association.to_sym)
-          next if !versionable_association?(association)
-
-          has_versioned_association(association)
+          has_versioned_association(association) if copyable_association?(association) && reflection.klass.acts_like?(:hindsight)
         end
       end
 
-      # Returns true if the associated model is versioned
-      def versionable_association?(association)
-        reflection = reflect_on_association(association)
-        versionable_reflection?(reflection) && reflection.klass.acts_like?(:hindsight)
+      # Detects associations that are the :through association for another association on the model
+      def detect_through_associations
+        reflections.each do |association, reflection|
+          next if ignored_association?(association)
+          self.through_associations << reflection.options.symbolize_keys[:through].try(:to_sym)
+        end
+        self.through_associations = through_associations.compact.uniq.reject! {|association| ignored_association?(association) }
+      end
+
+      # Returns true if the association can be copied from one version to the next
+      def copyable_association?(association)
+        Capabilities.for(reflect_on_association(association.to_sym)).include?(:versionable) &&
+        !ignored_association?(association) &&
+        !version_association?(association) &&
+        !through_association?(association)
+      end
+
+      # Returns true if the association is versioned, and is therefore expected to return only the latest
+      # versions of associated records
+      def versioned_association?(association)
+        versioned_associations.include?(association.to_sym)
       end
 
       # Returns true if the association is ignored and should not be copied to the new version
@@ -70,19 +81,13 @@ module Hindsight
         ignored_associations.include? association.to_sym
       end
 
-      # Returns true if the association exists only to keep track of previous versions of records
-      def version_association?(association)
-        association.to_s.end_with? 'versions'
-      end
-
-      # Returns true if the association is the :through association for another association on the model
       def through_association?(association)
-        through_associations = reflections.values.collect{|r| r.options.symbolize_keys[:through].try(:to_sym) }.compact.uniq
         through_associations.include? association.to_sym
       end
 
-      def versionable_reflection?(reflection)
-        Capabilities.for(reflection).include?(:versionable)
+      # Returns true if the association exists only to keep track of previous versions of records
+      def version_association?(association)
+        association.to_s.end_with? 'versions'
       end
 
       # Returns a condition for use in a versioned has_many association
@@ -105,8 +110,8 @@ module Hindsight
 
       def copy_associations_to(new_version)
         self.class.reflections.each do |association, reflection|
-          next if !self.class.send(:can_populate_new_version_association?, association)
           next if new_version.association(association.to_sym).loaded?
+          next if !self.class.send(:copyable_association?, association)
 
           records = send(association).to_a
           if reflection.klass.acts_like?(:hindsight) && Capabilities.for(reflection).include?(:new_version_on_copy)

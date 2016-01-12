@@ -21,7 +21,9 @@ module Hindsight
       options.reverse_merge! :associations => {}
 
       ignore_association(options[:associations][:ignore])
-      options[:associations].key?(:versioned) ? has_versioned_association(options[:associations][:versioned]) : detect_versioned_associations
+      detect_through_associations
+      detect_versioned_associations unless options[:associations].key?(:versioned)
+      has_versioned_association(options[:associations][:versioned])
 
       has_many :versions, lambda { extending(VersionAssociationExtensions) }, :class_name => name, :primary_key => :versioned_record_id, :foreign_key => :versioned_record_id
 
