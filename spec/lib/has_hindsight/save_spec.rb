@@ -47,23 +47,14 @@ describe Hindsight do
     end
 
     it 'runs save callbacks on the new version' do
-      stub_class(Document) do
-        attr_accessor :test_point
-        after_save lambda { |record| record.test_point = 'ran callbacks' }
-      end
-
-      expect(subject.new_version.test_point).to eq('ran callbacks')
+      stub_class(Document) { after_save lambda { |record| record.body = 'ran callbacks' } }
+      expect(subject.new_version.body).to eq('ran callbacks')
     end
 
-    it 'does not run callbacks on the current version' do
-      stub_class(Document) do
-        attr_accessor :test_point
-        after_save lambda { |record| record.test_point = 'ran callbacks' }
-      end
-
+    it 'does not run save callbacks on the current instance' do
+      stub_class(Document) { after_save lambda { |record| record.body = 'ran callbacks' } }
       subject.new_version
-
-      expect(subject.test_point).not_to eq('ran callbacks')
+      expect(subject.body).not_to eq('ran callbacks')
     end
   end
 
@@ -99,7 +90,11 @@ describe Hindsight do
       expect { subject.save }.not_to change { subject.versions.count }
     end
 
-    it 'runs save callbacks'
+    it 'runs save callbacks on the current instance' do
+      stub_class(Document) { before_save lambda { |record| record.body = 'ran callbacks' } }
+      subject.save
+      expect(subject.body).to eq('ran callbacks')
+    end
   end
 
   describe '#update_attributes' do
