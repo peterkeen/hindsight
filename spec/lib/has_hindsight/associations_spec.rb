@@ -8,13 +8,13 @@ describe Hindsight do
   let(:author) { Author.create }
 
   describe '::through_associations' do
-    it 'considers a through association a normal association if its end association is ignored' do
-      stub_class(Project) { has_hindsight :associations => { :ignore => :companies } }
-      expect(Project.versioned_associations).to include(:project_companies)
-    end
-
     it 'excludes ignored associations from :through associations' do
       stub_class(Project) { has_hindsight :associations => { :ignore => :project_companies } }
+      expect(Project.through_associations).not_to include(:project_companies)
+    end
+
+    it 'does not detect through associations from ignored associations' do
+      stub_class(Project) { has_hindsight :associations => { :ignore => :companies } }
       expect(Project.through_associations).not_to include(:project_companies)
     end
   end
