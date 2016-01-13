@@ -36,8 +36,6 @@ module Hindsight
         end
       end
 
-      end
-
       private
 
       # Identify an association that should not be copied when making new_versions
@@ -59,7 +57,7 @@ module Hindsight
           next if ignored_association?(association)
           self.through_associations << reflection.options.symbolize_keys[:through].try(:to_sym)
         end
-        self.through_associations = through_associations.compact.uniq.reject! {|association| ignored_association?(association) }
+        self.through_associations = through_associations.compact.uniq.reject! {|association| ignored_association?(association) } || []
       end
 
       # Returns true if the association can be copied from one version to the next
